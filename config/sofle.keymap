@@ -106,3 +106,16 @@
 
     };
 };
+
+/* your keymap layers up here … */
+
+&led_strip {
+    chain-length = <35>;   /* adjust if your actual count is different */
+    // color-mapping = <LED_COLOR_MAPPING_GRB>;  // uncomment if colors are wrong
+};
+
+ / {
+    chosen {
+        zmk,underglow = &led_strip;
+    };
+};
