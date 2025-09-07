@@ -5,23 +5,13 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   # ---------- Firmware builds via reusable ZMK workflow ----------
   build:
     uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@v0.3
-    with:
-      # Path to your ZMK config (prj.conf, keymap, overlays, etc.)
-      config-path: config
-      # Build matrix (string YAML expected by the reusable workflow)
-      matrix: |
-        include:
-          - board: nice_nano_v2
-            shield: sofle_left
-          - board: nice_nano_v2
-            shield: sofle_right
-          # Optional: one-off target to wipe settings on a half
-          - board: nice_nano_v2
-            shield: settings_reset
 
   # ---------- Keymap SVG render (runs once) ----------
   keymap_svg:
