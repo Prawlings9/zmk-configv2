@@ -1,0 +1,110 @@
+# Sofle ZMK Firmware
+
+This repo builds and publishes firmware for a Sofle keyboard running ZMK on **nice!nano v2** controllers.  
+Each push/PR to this repo automatically produces firmware artifacts for flashing.
+
+---
+
+## 🔧 Build Targets
+
+Defined in [`build.yaml`](./build.yaml):
+
+- `nice_nano_v2 + sofle_left`
+- `nice_nano_v2 + sofle_right`
+- `nice_nano_v2 + settings_reset` (wipe stored settings/bonds)
+
+---
+
+## ⬇️ Downloading Firmware
+
+1. Go to [Actions](../../actions) → open the latest successful run.
+2. Under **Artifacts**, download:
+   - `sofle_left` → flash to the **left half**
+   - `sofle_right` → flash to the **right half**
+   - `settings_reset` *(optional)* → only if you need to wipe settings on a half.
+
+---
+
+## 💾 Flashing Guide
+
+1. **Enter bootloader mode**:  
+   Double-tap the reset button on your nice!nano. A USB drive named `NICENANO` will appear.
+
+2. **Flash firmware**:  
+   Drag & drop the correct `.uf2` onto the drive:
+   - Left build → left nice!nano  
+   - Right build → right nice!nano  
+
+3. **Reboot automatically**:  
+   The drive will disappear, and the half will reboot into ZMK firmware.
+
+---
+
+## 🔌 Bluetooth Pairing
+
+On the **RAISE** layer:
+- `BT_CLR` → clear old bonds
+- `BT1…BT5` → select Bluetooth profile slots
+
+On your computer/phone, pair the Sofle when it appears in Bluetooth devices.  
+Repeat for each slot you want to use.
+
+---
+
+## 🌈 RGB Controls Cheatsheet
+
+Hold **LOWER + RAISE** to enter the **ADJUST** layer:
+
+### Power
+- `RGB_TOG` → Toggle underglow ON/OFF  
+- `EP_TOG` → Toggle external LED power (if wired that way)  
+
+### Effects
+- `RGB_EFF` → Cycle through:
+  1. Solid  
+  2. Breathing  
+  3. Rainbow Swirl  
+  4. Rainbow Mood  
+  5. Rainbow Chase  
+  6. Twinkle ✨  
+  7. Flicker 🔥  
+
+### Adjustments
+- `RGB_HUI` / `RGB_HUD` → Hue up/down (color wheel)  
+- `RGB_SAI` / `RGB_SAD` → Saturation up/down (vivid ↔ white)  
+- `RGB_BRI` / `RGB_BRD` → Brightness up/down  
+
+#### Hue Reference
+| Range | Colors |
+|-------|--------|
+| 0–30  | Red → Orange → Yellow (warm) |
+| 60–180| Green → Cyan |
+| 180–300 | Blue → Purple → Pink |
+| 300–360 | Back to Red |
+
+### Quick Recipes
+- **Warm White** → Hue near orange/yellow + lower saturation  
+- **Cool White** → Hue near cyan/blue + lower saturation  
+- **Soft Ambient** → Any hue + low brightness/saturation  
+- **Bold Pop** → Any hue + max saturation + high brightness  
+
+---
+
+## ⚡ Defaults (from this config)
+
+- Lights **ON at startup**  
+- Default effect = **Twinkle ✨**  
+- Speed = **3/5 (medium)**  
+- Brightness = **80%**  
+- Saturation = **100% (vivid)**  
+
+---
+
+## 🛠️ Troubleshooting
+
+- **Wrong half flashed?** → Re-flash with the correct `.uf2`.  
+- **Weird behavior?** → Flash `settings_reset`, then re-flash normal firmware and re-pair Bluetooth.  
+- **No lights?** → Confirm `CONFIG_ZMK_RGB_UNDERGLOW=y` in [`config/sofle.conf`](./config/sofle.conf).  
+- **Display blanks when RGB off?** → Uncomment  
+  ```ini
+  CONFIG_ZMK_RGB_UNDERGLOW_EXT_POWER=n
