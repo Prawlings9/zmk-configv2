@@ -13,16 +13,23 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.11"   # <-- pin to a supported version
+
       - name: Install keymap-drawer
-        run: python -m pip install --upgrade pip && pip install keymap-drawer
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "keymap-drawer>=0.15,<1"
+          keymap-drawer --version
+
       - name: Render keymap to SVG
         run: |
           mkdir -p out
-          python -m keymap_drawer.cli parse -z config -o out/sofle.yaml
-          python -m keymap_drawer.cli draw -c out/sofle.yaml -o out/keymap-sofle.svg
+          keymap-drawer parse -z config -o out/sofle.yaml
+          keymap-drawer draw -c out/sofle.yaml -o out/keymap-sofle.svg
+
       - name: Upload keymap image
         uses: actions/upload-artifact@v4
         with:
