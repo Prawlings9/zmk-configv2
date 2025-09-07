@@ -28,16 +28,17 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install keymap-drawer (pinned, Py 3.11 compatible)
+      # Pin versions so keymap_drawer works with the Tree-sitter API it expects
+      - name: Install keymap-drawer (pin compatible versions)
         run: |
           python -m pip install --upgrade pip
-          python -m pip install "keymap-drawer==0.21.0" "tree-sitter==0.25.1" "tree-sitter-devicetree==0.14.1"
+          python -m pip install "keymap-drawer==0.19.0" "tree-sitter==0.20.4" "tree-sitter-devicetree==0.20.2"
 
       - name: Render keymap to SVG
         run: |
           set -euxo pipefail
           mkdir -p out
-          # Parse the actual keymap file (not the directory)
+          # Parse your ZMK keymap (adjust path if your file name differs)
           python -m keymap_drawer parse -z config/sofle.keymap -o out/sofle.yaml
           python -m keymap_drawer draw -c out/sofle.yaml -o out/keymap-sofle.svg
 
@@ -47,3 +48,4 @@ jobs:
           name: keymap-image
           path: out/keymap-sofle.svg
           if-no-files-found: error
+
