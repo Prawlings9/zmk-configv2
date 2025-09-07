@@ -257,3 +257,64 @@ RGB underglow + external power.
 
 ---
 
+# ⚡ Quick Start: Flashing & Testing Sofle Firmware
+
+## 1. Download the Firmware
+- Go to **GitHub → Actions → latest successful build**.
+- Under **Artifacts**, download the `.zip`.
+- Inside you’ll find:
+  - `sofle_left-nice_nano_v2.uf2`
+  - `sofle_right-nice_nano_v2.uf2`
+  - `settings_reset-nice_nano_v2.uf2` (optional, wipes saved settings)
+
+## 2. Flash Each Half
+1. Plug in one half with USB.
+2. Double-tap the reset button on the nice!nano → it appears as a drive named **NICENANO**.
+3. Drag the correct file:
+   - **Left half (central):** `sofle_left-nice_nano_v2.uf2`
+   - **Right half (peripheral):** `sofle_right-nice_nano_v2.uf2`
+4. It will reboot automatically.  
+➡️ Flash order doesn’t matter — just match the correct file to the correct half.
+
+(Optional) If things act weird (Bluetooth, pairing, etc.), flash `settings_reset-nice_nano_v2.uf2` first, then re-flash the proper left/right files.
+
+## 3. First Boot Test Checklist
+
+### 🖥️ OLEDs
+- Both halves light up on power.
+- **Left OLED (central):** shows active layer, *both* battery %, and BT profile.  
+- **Right OLED (peripheral):** shows active layer, its own battery %, and BT profile.
+
+### 🧭 Layers
+- Hold **Lower (MO1)** → OLEDs show `Layer: Lower`.
+- Hold **Raise (MO2)** → OLEDs show `Layer: Raise`.
+- Hold both → OLEDs show `Layer: Adjust`.
+- Release → back to `Layer: Default`.
+
+### 🌈 RGB
+- On boot: rainbow spectrum effect (brightness 80%, speed 3/5).
+- In Adjust layer:
+  - `RGB_TOG` → toggle lights on/off.
+  - `RGB_EFF` → cycle effects (Solid, Breathing, Swirl, Mood, Chase, Twinkle, Flicker).
+  - `RGB_HUI/HUD` → hue up/down.
+  - `RGB_SAI/SAD` → saturation up/down.
+  - `RGB_BRI/BRD` → brightness up/down.
+
+### 🎛️ Encoders
+- Left encoder → Volume up/down.
+- Right encoder → Page Up/Down.
+
+### 📶 Bluetooth
+- On Raise layer, tap `BT_SEL0` → enters pairing mode.
+- Connect from your host (PC/phone) → shows `BT: Profile 0`.
+- Switch profiles with `BT_SEL1–4`.
+- Clear all pairings with `BT_CLR`.
+
+### 🔋 Battery
+- Left OLED shows **both halves’ %**.
+- Right OLED shows **its own %**.
+- Both update live as you charge/discharge.
+
+---
+
+✅ If all these checks pass → your Sofle is fully functional and ready to use!
