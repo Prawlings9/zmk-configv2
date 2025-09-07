@@ -1,4 +1,4 @@
-name: ZMK Build + Diagnostics
+name: ZMK Build + Keymap
 
 on:
   push:
@@ -6,105 +6,49 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-left:
+    name: Build (nice_nano_v2, sofle_left)
+    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@v0.3
+    with:
+      board: nice_nano_v2
+      shield: sofle_left
+
+  build-right:
+    name: Build (nice_nano_v2, sofle_right)
+    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@v0.3
+    with:
+      board: nice_nano_v2
+      shield: sofle_right
+
+  render-keymap:
+    name: Render keymap SVG
     runs-on: ubuntu-latest
-    # Use the official ZMK dev container (west, Zephyr SDK, etc. preinstalled)
-    container:
-      image: ghcr.io/zmkfirmware/zmk-dev-arm:3.5
-      options: --user root
-
-    strategy:
-      fail-fast: false
-      matrix:
-        board: [nice_nano_v2]
-        shield: [sofle_left, sofle_right]
-
+    needs: [build-left, build-right]  # optional; remove if you want it to run independently
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Show environment
-        run: |
-          echo "Workspace: $GITHUB_WORKSPACE"
-          python3 --version || true
-          west --version || true
-          cmake --version || true
-
-      - name: Prepare west workspace (clone ZMK + fetch modules)
-        run: |
-          set -euxo pipefail
-          mkdir -p /workdir
-          cd /workdir
-          git clone --depth=1 https://github.com/zmkfirmware/zmk.git
-          west init -l zmk/app
-          west update
-          west zephyr-export
-
-      - name: Build (${{ matrix.board }}, ${{ matrix.shield }})
-        working-directory: /workdir
-        run: |
-          set -euxo pipefail
-          BUILD_DIR="build-${{ matrix.shield }}"
-          west build -s zmk/app -d "$BUILD_DIR" -b "${{ matrix.board }}" -- \
-            -DZMK_CONFIG="${GITHUB_WORKSPACE}/config" \
-            -DSHIELD="${{ matrix.shield }}" \
-            -DZMK_EXTRA_MODULES="${GITHUB_WORKSPACE}"
-          # Collect firmware
-          mkdir -p "${GITHUB_WORKSPACE}/out/firmware-${{ matrix.shield }}"
-          cp "$BUILD_DIR/zephyr"/zmk*.uf2 "${GITHUB_WORKSPACE}/out/firmware-${{ matrix.shield }}/" 2>/dev/null || true
-          cp "$BUILD_DIR/zephyr"/zmk*.bin "${GITHUB_WORKSPACE}/out/firmware-${{ matrix.shield }}/" 2>/dev/null || true
-
-      - name: Collect Zephyr diagnostics (.config + DTS)
-        if: always()
-        working-directory: /workdir
-        run: |
-          set -euxo pipefail
-          BUILD_DIR="build-${{ matrix.shield }}"
-          mkdir -p "${GITHUB_WORKSPACE}/out/diagnostics"
-          cp "$BUILD_DIR/zephyr/.config" "${GITHUB_WORKSPACE}/out/diagnostics/${{ matrix.shield }}.config" 2>/dev/null || true
-          cp "$BUILD_DIR/zephyr/zephyr.dts" "${GITHUB_WORKSPACE}/out/diagnostics/${{ matrix.shield }}.dts" 2>/dev/null || true
-          echo "==== Quick feature flags ===="
-          grep -E '^CONFIG_(ZMK_DISPLAY|EC11|WS2812|ZMK_RGB_UNDERGLOW|ZMK_RGB_UNDERGLOW_.*_START)=' \
-            "${GITHUB_WORKSPACE}/out/diagnostics/${{ matrix.shield }}.config" || true
-          echo "==== led_strip node lines ===="
-          grep -n "led_strip" "${GITHUB_WORKSPACE}/out/diagnostics/${{ matrix.shield }}.dts" || true
-
-      - name: Upload firmware (${{ matrix.shield }})
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          name: firmware-${{ matrix.shield }}
-          path: out/firmware-${{ matrix.shield }}/*
-          if-no-files-found: warn
+          python-version: "3.x"
 
-      - name: Upload diagnostics (${{ matrix.shield }})
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: diagnostics-${{ matrix.shield }}
-          path: out/diagnostics/*
-          if-no-files-found: warn
-
-      # --- Keymap render (run once to avoid duplicate artifacts) ---
       - name: Install keymap-drawer
-        if: ${{ matrix.shield == 'sofle_left' }}
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install "keymap-drawer>=0.15,<1.0"
 
-      - name: Render keymap to SVG
-        if: ${{ matrix.shield == 'sofle_left' }}
+      - name: Render to SVG
         run: |
           set -euxo pipefail
           mkdir -p out
-          # Point directly to the .keymap file
           python3 -m keymap_drawer.cli parse -z config/sofle.keymap -o out/sofle.yaml
           python3 -m keymap_drawer.cli draw -c out/sofle.yaml -o out/keymap-sofle.svg
 
       - name: Upload keymap image
-        if: ${{ matrix.shield == 'sofle_left' }}
         uses: actions/upload-artifact@v4
         with:
           name: keymap-image
           path: out/keymap-sofle.svg
           if-no-files-found: warn
+
