@@ -4,3 +4,99 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   build:
     uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@v0.3
+
+    name: ZMK Build + Diagnostics
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: nice_nano_v2
+            shield: sofle_left
+          - board: nice_nano_v2
+            shield: sofle_right
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---- ZMK build (uses official action) ----
+      - name: Build (${{ matrix.shield }})
+        id: zmk
+        uses: zmkfirmware/zmk-build-action@v1
+        with:
+            board: ${{ matrix.board }}
+            shield: ${{ matrix.shield }}
+            # Path to your config (keymap, prj.conf, overlays, etc.)
+            config-path: config
+            # Keep default west args unless you need more:
+            # extra-cmake-args: ""
+
+      # ---- Collect Zephyr diagnostics: final Kconfig + DTS ----
+      - name: Collect Zephyr .config and zephyr.dts
+        if: always()
+        run: |
+          set -euxo pipefail
+          mkdir -p out/diagnostics
+          # Find the active build's Zephyr dir (the action builds under /tmp)
+          CONF_PATH="$(find /tmp -path '*/zephyr/.config' | head -n1 || true)"
+          if [ -n "$CONF_PATH" ]; then
+            ZEPHYR_DIR="$(dirname "$CONF_PATH")"
+            cp "$ZEPHYR_DIR/.config" "out/diagnostics/${{ matrix.shield }}.config" || true
+            cp "$ZEPHYR_DIR/zephyr.dts" "out/diagnostics/${{ matrix.shield }}.dts" || true
+            echo "==== Quick check: feature flags in .config ===="
+            grep -E '^CONFIG_(ZMK_DISPLAY|EC11|WS2812|ZMK_RGB_UNDERGLOW|ZMK_RGB_UNDERGLOW_.*_START)=' "out/diagnostics/${{ matrix.shield }}.config" || true
+            echo "==== Quick check: led_strip node in DTS ===="
+            grep -n "led_strip" "out/diagnostics/${{ matrix.shield }}.dts" || true
+          else
+            echo "::warning::Could not locate Zephyr .config; skipping diagnostics copy."
+          fi
+
+      - name: Upload diagnostics (${{ matrix.shield }})
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-${{ matrix.shield }}
+          path: out/diagnostics/*
+
+      # ---- Render keymap image (virtual sanity check) ----
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install keymap-drawer
+        run: python -m pip install --upgrade pip && pip install keymap-drawer
+
+      - name: Render keymap to SVG
+        run: |
+          mkdir -p out
+          # Parse your ZMK config folder into a drawer YAML
+          python -m keymap_drawer.cli parse -z config -o out/sofle.yaml
+          # Draw a nice visual
+          python -m keymap_drawer.cli draw -c out/sofle.yaml -o out/keymap-sofle.svg
+
+      - name: Upload keymap image
+        uses: actions/upload-artifact@v4
+        with:
+          name: keymap-image
+          path: out/keymap-sofle.svg
+
+      # ---- Upload firmware produced by the build action (unchanged) ----
+      - name: Upload firmware bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.shield }}
+          path: |
+            build/**/zmk*.uf2
+            build/**/zmk*.bin
+            build/**/firmware-*.zip
+          if-no-files-found: warn
