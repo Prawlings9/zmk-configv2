@@ -8,10 +8,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Run inside the official ZMK dev container so toolchains are preinstalled
+    # Use the official ZMK dev container (west, Zephyr SDK, etc. preinstalled)
     container:
       image: ghcr.io/zmkfirmware/zmk-dev-arm:3.5
       options: --user root
+
     strategy:
       fail-fast: false
       matrix:
@@ -48,7 +49,6 @@ jobs:
             -DZMK_CONFIG="${GITHUB_WORKSPACE}/config" \
             -DSHIELD="${{ matrix.shield }}" \
             -DZMK_EXTRA_MODULES="${GITHUB_WORKSPACE}"
-
           # Collect firmware
           mkdir -p "${GITHUB_WORKSPACE}/out/firmware-${{ matrix.shield }}"
           cp "$BUILD_DIR/zephyr"/zmk*.uf2 "${GITHUB_WORKSPACE}/out/firmware-${{ matrix.shield }}/" 2>/dev/null || true
@@ -85,20 +85,26 @@ jobs:
           path: out/diagnostics/*
           if-no-files-found: warn
 
-      # --- Keymap render (do this once to avoid duplicate artifacts) ---
+      # --- Keymap render (run once to avoid duplicate artifacts) ---
       - name: Install keymap-drawer
         if: ${{ matrix.shield == 'sofle_left' }}
-        run: python3 -m pip install --upgrade pip && python3 -m pip install "keymap-drawer>=0.15,<1.0"
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install "keymap-drawer>=0.15,<1.0"
 
       - name: Render keymap to SVG
         if: ${{ matrix.shield == 'sofle_left' }}
         run: |
           set -euxo pipefail
           mkdir -p out
-          # Point to your actual .keymap file (not the directory)
+          # Point directly to the .keymap file
           python3 -m keymap_drawer.cli parse -z config/sofle.keymap -o out/sofle.yaml
           python3 -m keymap_drawer.cli draw -c out/sofle.yaml -o out/keymap-sofle.svg
 
-      - name: Upload keymap im
-
-
+      - name: Upload keymap image
+        if: ${{ matrix.shield == 'sofle_left' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: keymap-image
+          path: out/keymap-sofle.svg
+          if-no-files-found: warn
