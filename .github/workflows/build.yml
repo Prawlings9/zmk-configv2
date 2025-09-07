@@ -16,22 +16,27 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"   # <-- pin to a supported version
+          python-version: "3.11"
+
+      # OPTIONAL: only needed if you want to call `keymap-drawer` directly
+      - name: Add Python bin to PATH
+        run: echo "$pythonLocation/bin" >> $GITHUB_PATH
 
       - name: Install keymap-drawer
         run: |
           python -m pip install --upgrade pip
-          python -m pip install "keymap-drawer>=0.15,<1"
-          keymap-drawer --version
+          python -m pip install "keymap-drawer>=0.20,<1"
 
+      # If you added the PATH step above, you can use the CLI:
+      # - name: Render keymap to SVG
+      #   run: |
+      #     mkdir -p out
+      #     keymap-drawer parse -z config -o out/sofle.yaml
+      #     keymap-drawer draw -c out/sofle.yaml -o out/keymap-sofle.svg
+
+      # Otherwise, keep using the module form (no PATH tweak needed):
       - name: Render keymap to SVG
         run: |
           mkdir -p out
-          keymap-drawer parse -z config -o out/sofle.yaml
-          keymap-drawer draw -c out/sofle.yaml -o out/keymap-sofle.svg
-
-      - name: Upload keymap image
-        uses: actions/upload-artifact@v4
-        with:
-          name: keymap-image
-          path: out/keymap-sofle.svg
+          python -m keymap_drawer parse -z config -o out/sofle.yaml
+          python -m keymap_drawer draw -c out/sofle.yaml -o out/keymap-sofle.svg
