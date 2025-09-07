@@ -106,3 +106,11 @@
 
     };
 };
+&led_strip {
+    chain-length = <36>;  /* LEDs on each half */
+    // color-mapping = <LED_COLOR_MAPPING_GRB>;  /* uncomment if colors look swapped */
+};
+/ {
+    chosen { zmk,underglow = &led_strip; };
+};
+
