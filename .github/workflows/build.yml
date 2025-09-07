@@ -1,89 +1,30 @@
-name: ZMK Build + Diagnostics
+name: ZMK Build + Keymap
 
 on: [push, pull_request, workflow_dispatch]
 
 jobs:
+  # Official ZMK reusable workflow – reads your root-level build.yaml
   build:
+    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@main
+
+  # Extra: render a keymap image from your config (optional, but handy)
+  keymap:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - board: nice_nano_v2
-            shield: sofle_left
-          - board: nice_nano_v2
-            shield: sofle_right
-
+    needs: build
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # ---- ZMK build (official action) ----
-      - name: Build (${{ matrix.shield }})
-        id: zmk
-        uses: zmkfirmware/zmk-build-action@v1
-        with:
-          board: ${{ matrix.board }}
-          shield: ${{ matrix.shield }}
-          config-path: config
-
-      # ---- Collect Zephyr diagnostics: final Kconfig + DTS ----
-      - name: Collect Zephyr .config and zephyr.dts
-        if: always()
-        run: |
-          set -euxo pipefail
-          mkdir -p out/diagnostics
-          CONF="$(find "$GITHUB_WORKSPACE" /tmp -path '*/zephyr/.config' -print -quit || true)"
-          if [ -n "$CONF" ]; then
-            ZDIR="$(dirname "$CONF")"
-            cp "$ZDIR/.config" "out/diagnostics/${{ matrix.shield }}.config" || true
-            cp "$ZDIR/zephyr.dts" "out/diagnostics/${{ matrix.shield }}.dts" || true
-            echo "==== Quick check: feature flags in .config ===="
-            grep -E '^CONFIG_(ZMK_DISPLAY|EC11|WS2812|ZMK_RGB_UNDERGLOW|ZMK_RGB_UNDERGLOW_.*_START)=' "out/diagnostics/${{ matrix.shield }}.config" || true
-            echo "==== Quick check: led_strip node in DTS ===="
-            grep -n "led_strip" "out/diagnostics/${{ matrix.shield }}.dts" || true
-          else
-            echo "::warning::Could not locate Zephyr .config; skipping diagnostics copy."
-          fi
-
-      - name: Upload diagnostics (${{ matrix.shield }})
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: diagnostics-${{ matrix.shield }}
-          path: out/diagnostics/*
-          if-no-files-found: ignore
-
-      # ---- Render keymap image (virtual sanity check) ----
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-
       - name: Install keymap-drawer
-        run: pip install --upgrade pip keymap-drawer
-
+        run: python -m pip install --upgrade pip && pip install keymap-drawer
       - name: Render keymap to SVG
         run: |
           mkdir -p out
           python -m keymap_drawer.cli parse -z config -o out/sofle.yaml
           python -m keymap_drawer.cli draw -c out/sofle.yaml -o out/keymap-sofle.svg
-
       - name: Upload keymap image
         uses: actions/upload-artifact@v4
         with:
           name: keymap-image
           path: out/keymap-sofle.svg
-
-      # ---- Upload firmware produced by the build action ----
-      - name: Upload firmware bundle
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: firmware-${{ matrix.shield }}
-          path: |
-            build/**/zmk*.uf2
-            build/**/zmk*.bin
-            build/**/firmware-*.zip
-          if-no-files-found: ignore
-
