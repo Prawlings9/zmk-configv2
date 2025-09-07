@@ -27,7 +27,7 @@ include:
     shield: sofle_right
     artifact-name: sofle_right-nice_nano_v2
 
-  # Optional: one-off firmware to wipe settings on a half
   - board: nice_nano_v2
     shield: settings_reset
     artifact-name: settings_reset-nice_nano_v2
+
