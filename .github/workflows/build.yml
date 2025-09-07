@@ -1,4 +1,4 @@
-name: ZMK Build + Keymap
+name: ZMK Build + Diagnostics
 
 on:
   push:
@@ -6,24 +6,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-left:
-    name: Build (nice_nano_v2, sofle_left)
-    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@v0.3
-    with:
-      board: nice_nano_v2
-      shield: sofle_left
-
-  build-right:
-    name: Build (nice_nano_v2, sofle_right)
-    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@v0.3
-    with:
-      board: nice_nano_v2
-      shield: sofle_right
+  build:
+    # Uses ZMK’s official reusable workflow. It reads build targets from build.yaml in your repo root.
+    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@main
 
   render-keymap:
-    name: Render keymap SVG
+    # Independent job that renders your keymap SVG
     runs-on: ubuntu-latest
-    needs: [build-left, build-right]  # optional; remove if you want it to run independently
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -35,20 +24,19 @@ jobs:
 
       - name: Install keymap-drawer
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install "keymap-drawer>=0.15,<1.0"
+          python -m pip install --upgrade pip
+          python -m pip install "keymap-drawer>=0.15,<1.0"
 
-      - name: Render to SVG
+      - name: Render keymap to SVG
         run: |
-          set -euxo pipefail
           mkdir -p out
-          python3 -m keymap_drawer.cli parse -z config/sofle.keymap -o out/sofle.yaml
-          python3 -m keymap_drawer.cli draw -c out/sofle.yaml -o out/keymap-sofle.svg
+          # IMPORTANT: point to the actual .keymap file (not the folder)
+          python -m keymap_drawer.cli parse -z config/sofle.keymap -o out/sofle.yaml
+          python -m keymap_drawer.cli draw -c out/sofle.yaml -o out/keymap-sofle.svg
 
       - name: Upload keymap image
         uses: actions/upload-artifact@v4
         with:
           name: keymap-image
           path: out/keymap-sofle.svg
-          if-no-files-found: warn
-
+          if-no-files-found: error
