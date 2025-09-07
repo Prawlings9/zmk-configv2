@@ -32,7 +32,8 @@ jobs:
       - name: Install keymap-drawer (pin compatible versions)
         run: |
           python -m pip install --upgrade pip
-          python -m pip install "keymap-drawer==0.19.0" "tree-sitter==0.20.4" "tree-sitter-devicetree==0.14.1"
+          python -m pip install "keymap-drawer==0.19.0" "tree-sitter==0.23.2" "tree-sitter-devicetree==0.14.1"
+
 
       - name: Render keymap to SVG
         run: |
